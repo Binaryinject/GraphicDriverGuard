@@ -70,7 +70,7 @@ Tagged GitHub releases provide two ready-to-install archives:
 
 The release workflow builds and tests both native proxies before creating either archive. The `.unitypackage` is self-contained and requires no extra importer package. Both installation methods have the same build behavior.
 
-Open **Project Settings > Player > Graphic Driver Guard** to edit the render-API selection (Vulkan / Direct3D 12), the minimum Vulkan version, the minimum D3D12 feature level, per-platform minimum and recommended driver versions, vendor URLs, and optional deny-list rules. The postprocessor applies to `StandaloneWindows64` and `StandaloneLinux64` builds. Direct3D 12 detection only runs on Windows.
+Open **Project Settings > Player > Graphic Driver Guard** to edit the render-API selection (Vulkan / Direct3D 12), the minimum Vulkan version, the minimum D3D12 feature level, per-platform minimum and recommended driver versions, vendor URLs, and optional deny-list rules. Disable **Enable Build Integration** to leave standalone builds untouched; when disabled, the postprocessor also removes proxy/configuration artifacts left by an earlier enabled build. The postprocessor applies to `StandaloneWindows64` and `StandaloneLinux64` builds. Direct3D 12 detection only runs on Windows.
 
 The native proxy binaries are expected at:
 

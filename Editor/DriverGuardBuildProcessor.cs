@@ -30,6 +30,14 @@ namespace GraphicDriverGuard.Editor
             var windows = target == BuildTarget.StandaloneWindows64;
             var playerName = windows ? "UnityPlayer.dll" : "UnityPlayer.so";
             var originalPlayerName = windows ? "UnityPlayer_.dll" : "UnityPlayer_.so";
+
+            if (!DriverGuardSettings.instance.enableBuildIntegration)
+            {
+                RemoveGeneratedArtifacts(buildDirectory, playerName, originalPlayerName);
+                Debug.Log("[GraphicDriverGuard] Build integration is disabled; no proxy or configuration was added.");
+                return;
+            }
+
             var architecture = "x86_64";
 
             var packageRoot = Environment.GetEnvironmentVariable("UVDG_PACKAGE_ROOT");
@@ -76,6 +84,29 @@ namespace GraphicDriverGuard.Editor
             File.WriteAllText(configPath, CreateConfig(DriverGuardSettings.instance, windows),
                 new UTF8Encoding(false));
             Debug.Log($"[GraphicDriverGuard] Installed pre-render proxy: {playerPath}");
+        }
+
+        private static void RemoveGeneratedArtifacts(string buildDirectory, string playerName,
+            string originalPlayerName)
+        {
+            var configPath = Path.Combine(buildDirectory, "DriverGuard.ini");
+            var playerPath = Path.Combine(buildDirectory, playerName);
+            var originalPlayerPath = Path.Combine(buildDirectory, originalPlayerName);
+            var temporaryProxyPath = playerPath + ".uvdg.tmp";
+
+            // A previous enabled build may have replaced UnityPlayer and left the original beside it.
+            // Restore that original before removing the generated configuration.
+            if (File.Exists(originalPlayerPath))
+            {
+                if (File.Exists(playerPath))
+                    File.Delete(playerPath);
+                File.Move(originalPlayerPath, playerPath);
+            }
+
+            if (File.Exists(configPath))
+                File.Delete(configPath);
+            if (File.Exists(temporaryProxyPath))
+                File.Delete(temporaryProxyPath);
         }
 
         internal static string CreateConfig(DriverGuardSettings settings, bool windows)

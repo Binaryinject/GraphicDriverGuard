@@ -62,6 +62,8 @@ namespace GraphicDriverGuard.Editor
     [FilePath("ProjectSettings/GraphicDriverGuardSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal sealed class DriverGuardSettings : ScriptableSingleton<DriverGuardSettings>
     {
+        [Tooltip("Enable Graphic Driver Guard integration for standalone player builds.")]
+        public bool enableBuildIntegration = true;
         public int minimumVulkanMajor = 1;
         public int minimumVulkanMinor = 1;
         [Tooltip("Check Vulkan support before startup.")]
