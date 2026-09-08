@@ -82,6 +82,12 @@ std::string Details(const PreflightResult& result, const Language language) {
                    << result.requiredVulkanMajor << '.' << result.requiredVulkanMinor
                    << ' ' << text.orNewer;
         }
+        if (result.checkD3D11) {
+            stream << "\n" << text.dx11FeatureLevel << ": "
+                   << FormatFeatureLevel(result.gpu.d3d11FeatureLevel)
+                   << "\n" << text.requiredD3D11FeatureLevel << ": "
+                   << FormatFeatureLevel(result.requiredD3D11FeatureLevel) << ' ' << text.orNewer;
+        }
         if (result.checkD3D12) {
             stream << "\n" << text.dx12FeatureLevel << ": "
                    << FormatFeatureLevel(result.gpu.d3d12FeatureLevel)
@@ -109,10 +115,13 @@ std::string ExecutableDirectory() {
 bool ShowFailureDialog(const PreflightResult& result) {
     const Language language = SystemLanguage();
     const LocalizedText& text = Text(language);
+    const bool dx11Failure = result.failure == FailureKind::D3D11Unavailable ||
+                             result.failure == FailureKind::D3D11FeatureLevelUnsupported;
     const bool dx12Failure = result.failure == FailureKind::D3D12Unavailable ||
                              result.failure == FailureKind::D3D12FeatureLevelUnsupported;
     const std::string title = result.failure == FailureKind::DriverDenied
-        ? text.driverTitle : (dx12Failure ? text.dx12Title : text.vulkanTitle);
+        ? text.driverTitle
+        : (dx11Failure ? text.dx11Title : (dx12Failure ? text.dx12Title : text.vulkanTitle));
     const std::string details = Details(result, language);
 
     const bool canContinue = result.CanContinue();

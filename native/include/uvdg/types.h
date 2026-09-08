@@ -10,7 +10,12 @@ constexpr std::uint32_t kVendorNvidia = 0x10de;
 constexpr std::uint32_t kVendorAmd = 0x1002;
 constexpr std::uint32_t kVendorIntel = 0x8086;
 
-// D3D_FEATURE_LEVEL values; Direct3D 12 is only available at feature level 11_0+.
+// D3D_FEATURE_LEVEL values. D3D11 spans 9_1 through 11_1; D3D12 requires 11_0+.
+constexpr std::uint32_t kFeatureLevel9_1 = 0x9100;
+constexpr std::uint32_t kFeatureLevel9_2 = 0x9200;
+constexpr std::uint32_t kFeatureLevel9_3 = 0x9300;
+constexpr std::uint32_t kFeatureLevel10_0 = 0xA000;
+constexpr std::uint32_t kFeatureLevel10_1 = 0xA100;
 constexpr std::uint32_t kFeatureLevel11_0 = 0xB000;
 constexpr std::uint32_t kFeatureLevel11_1 = 0xB100;
 constexpr std::uint32_t kFeatureLevel12_0 = 0xC000;
@@ -70,7 +75,9 @@ struct Config {
     std::uint32_t minimumVulkanMajor = 1;
     std::uint32_t minimumVulkanMinor = 1;
     bool checkVulkan = true;
+    bool checkD3D11 = false;
     bool checkD3D12 = false;
+    std::uint32_t minimumD3D11FeatureLevel = kFeatureLevel11_0;
     std::uint32_t minimumFeatureLevel = kFeatureLevel11_0;
     VendorPolicy nvidia;
     VendorPolicy amd;
@@ -90,6 +97,7 @@ struct GpuInfo {
     std::string driverName;
     std::string driverInfo;
     Version unifiedDriverVersion;
+    std::uint32_t d3d11FeatureLevel = 0;
     std::uint32_t d3d12FeatureLevel = 0;
 };
 
@@ -100,6 +108,8 @@ enum class FailureKind {
     NoPhysicalDevice,
     VulkanVersionUnsupported,
     DriverDenied,
+    D3D11Unavailable,
+    D3D11FeatureLevelUnsupported,
     D3D12Unavailable,
     D3D12FeatureLevelUnsupported
 };
@@ -110,7 +120,9 @@ struct PreflightResult {
     std::uint32_t requiredVulkanMajor = 1;
     std::uint32_t requiredVulkanMinor = 1;
     bool checkVulkan = true;
+    bool checkD3D11 = false;
     bool checkD3D12 = false;
+    std::uint32_t requiredD3D11FeatureLevel = kFeatureLevel11_0;
     std::uint32_t requiredFeatureLevel = kFeatureLevel11_0;
     bool deniedByMinimumVersion = false;
     std::string reason;
@@ -128,6 +140,7 @@ struct PreflightResult {
                 return false;
             }
         }
+        if (checkD3D11 && gpu.d3d11FeatureLevel < requiredD3D11FeatureLevel) return false;
         if (checkD3D12 && gpu.d3d12FeatureLevel < requiredFeatureLevel) return false;
         return true;
     }

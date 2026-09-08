@@ -90,6 +90,25 @@ void RunConfigTests() {
     Require(dx12.driverDenyList[1].rhiName.empty(),
             "vendor minimum must apply to every render API");
 
+    // D3D11 render API selection and minimum feature level.
+    {
+        std::ofstream output(path);
+        output << "[Global]\nRenderAPI=D3D11\nMinimumD3D11FeatureLevel=10_0\n"
+                  "[GPU_NVIDIA]\nMinimumDriverVersion=551.76\n"
+                  "+DriverDenyList=(DriverVersion=\"<561.0\",RHIName=\"D3D11\","
+                  "DeviceId=\"0x1B80\",Reason=\"Known D3D11 issue\")\n";
+    }
+    const auto dx11 = uvdg::LoadConfig(path.string());
+    std::filesystem::remove(path);
+    Require(!dx11.checkVulkan && dx11.checkD3D11 && !dx11.checkD3D12,
+            "RenderAPI=D3D11 must enable only D3D11");
+    Require(dx11.minimumD3D11FeatureLevel == uvdg::kFeatureLevel10_0,
+            "MinimumD3D11FeatureLevel was not parsed");
+    Require(dx11.driverDenyList.size() == 2,
+            "D3D11 deny rule and vendor minimum must be parsed");
+    Require(dx11.driverDenyList[0].rhiName == "D3D11",
+            "D3D11 deny rule was not parsed");
+
     // Both render APIs.
     {
         std::ofstream output(path);
@@ -101,18 +120,22 @@ void RunConfigTests() {
             "RenderAPI=Vulkan,D3D12 must enable both APIs");
 
     // RHI selector activation.
-    Require(uvdg::RhiIsActive("", true, false),
+    Require(uvdg::RhiIsActive("", true, false, false),
             "empty RHIName must apply to every render API");
-    Require(uvdg::RhiIsActive("Vulkan", true, false),
+    Require(uvdg::RhiIsActive("Vulkan", true, false, false),
             "Vulkan rule must be active when Vulkan is checked");
-    Require(!uvdg::RhiIsActive("Vulkan", false, true),
-            "Vulkan rule must be inactive when only D3D12 is checked");
-    Require(uvdg::RhiIsActive("d3d12", false, true),
+    Require(!uvdg::RhiIsActive("Vulkan", false, true, false),
+            "Vulkan rule must be inactive when only D3D11 is checked");
+    Require(uvdg::RhiIsActive("d3d11", false, true, false),
+            "D3D11 rule must be active when D3D11 is checked");
+    Require(!uvdg::RhiIsActive("d3d11", true, false, false),
+            "D3D11 rule must be inactive when only Vulkan is checked");
+    Require(uvdg::RhiIsActive("d3d12", false, false, true),
             "D3D12 rule must be active when D3D12 is checked");
-    Require(!uvdg::RhiIsActive("d3d12", true, false),
+    Require(!uvdg::RhiIsActive("d3d12", true, false, false),
             "D3D12 rule must be inactive when only Vulkan is checked");
-    Require(uvdg::RhiIsActive("D3D12", true, true),
+    Require(uvdg::RhiIsActive("D3D11", true, true, true),
             "RHI matching must be case-insensitive");
-    Require(!uvdg::RhiIsActive("opengl", true, true),
+    Require(!uvdg::RhiIsActive("opengl", true, true, true),
             "unknown RHI must never be active");
 }

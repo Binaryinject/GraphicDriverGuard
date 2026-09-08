@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GraphicDriverGuard VERSION 0.4.1 LANGUAGES CXX)
+project(GraphicDriverGuard VERSION 0.5.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,6 +11,7 @@ endif()
 add_library(uvdg_core STATIC
     native/src/config.cpp
     native/src/driver_version.cpp
+    native/src/dx11_probe.cpp
     native/src/dx12_probe.cpp
     native/src/localization.cpp
     native/src/preflight.cpp

@@ -55,6 +55,7 @@ $coreSources = @(
     "$repoRoot\native\src\config.cpp",
     "$repoRoot\native\src\driver_version.cpp",
     "$repoRoot\native\src\driver_version_windows.cpp",
+    "$repoRoot\native\src\dx11_probe.cpp",
     "$repoRoot\native\src\dx12_probe.cpp",
     "$repoRoot\native\src\localization.cpp",
     "$repoRoot\native\src\preflight.cpp",

@@ -2,19 +2,20 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Graphic Driver Guard is a pre-render GPU check for standalone Unity players. It runs before Unity creates its graphics device and supports preflight checks for Vulkan and/or Direct3D 12, for games that cannot offer another fallback.
+Graphic Driver Guard is a pre-render GPU check for standalone Unity players. It runs before Unity creates its graphics device and supports preflight checks for Vulkan, Direct3D 11, and/or Direct3D 12, for games that cannot offer another fallback.
 
 ## What It Checks
 
-- A configurable render-API selection: Vulkan only, Direct3D 12 only, or both.
+- A configurable render-API selection: any combination of Vulkan, Direct3D 11, and Direct3D 12.
 - Vulkan Loader availability and physical-device enumeration.
 - Physical-device API version. The default minimum is Vulkan 1.1.
+- Direct3D 11 availability: whether a hardware adapter can create a D3D11 device, and the highest supported feature level (default minimum `11_0`; `9_1` through `11_1` are configurable).
 - Direct3D 12 availability: whether a hardware adapter can create a D3D12 device, and the highest supported feature level (default minimum `11_0`; `11_1` / `12_0` / `12_1` are configurable).
 - GPU vendor and device identity.
-- UE5-style driver deny rules constrained by `RHIName` (`Vulkan` / `D3D12`), adapter-name regex, and optional Vulkan `DeviceId`/`DriverId` selectors.
+- UE5-style driver deny rules constrained by `RHIName` (`Vulkan` / `D3D11` / `D3D12`), adapter-name regex, and optional Vulkan `DeviceId`/`DriverId` selectors.
 - A vendor-specific recommended driver version and download URL.
 
-If a check fails, the native dialog shows the GPU, installed driver, Vulkan version (or D3D12 feature level), reason, recommended version, and an **Update driver** button. A deny-listed driver whose hardware still meets the required Vulkan API / D3D12 feature level also offers **Continue anyway**. Missing render-API support and levels below the minimum remain blocking. There is no render-API switch.
+If a check fails, the native dialog shows the GPU, installed driver, Vulkan version (or D3D11 / D3D12 feature level), reason, recommended version, and an **Update driver** button. A deny-listed driver whose hardware still meets the required Vulkan API / D3D feature level also offers **Continue anyway**. Missing render-API support and levels below the minimum remain blocking. There is no render-API switch.
 
 The dialog follows the operating-system language for Chinese, Japanese, and Korean. Every other system language uses English.
 
@@ -24,7 +25,7 @@ The rule and message flow follows the public UE5 RHI startup model:
 
 - `FGPUDriverInfo`-style vendor normalization and numeric version comparison.
 - `DriverDenyList` entries with `<`, `<=`, `=`, `>=`, or `>` operators.
-- `RHIName` (`Vulkan` or `D3D12`), `AdapterNameRegex`, `DeviceId`, and Vulkan `DriverId` selectors are evaluated before a rule can deny a driver.
+- `RHIName` (`Vulkan`, `D3D11`, or `D3D12`), `AdapterNameRegex`, `DeviceId`, and Vulkan `DriverId` selectors are evaluated before a rule can deny a driver.
 - `MinimumDriverVersion` applies a vendor-wide threshold without requiring `DeviceId` selectors.
 - `SuggestedDriverVersion` and vendor download URL fields.
 - Early startup blocking equivalent to UE's `RHIDetectAndWarnOfBadDrivers` path.
@@ -70,7 +71,7 @@ Tagged GitHub releases provide two ready-to-install archives:
 
 The release workflow builds and tests both native proxies before creating either archive. The `.unitypackage` is self-contained and requires no extra importer package. Both installation methods have the same build behavior.
 
-Open **Project Settings > Player > Graphic Driver Guard** to edit the render-API selection (Vulkan / Direct3D 12), the minimum Vulkan version, the minimum D3D12 feature level, per-platform minimum and recommended driver versions, vendor URLs, and optional deny-list rules. Disable **Enable Build Integration** to leave standalone builds untouched; when disabled, the postprocessor also removes proxy/configuration artifacts left by an earlier enabled build. The postprocessor applies to `StandaloneWindows64` and `StandaloneLinux64` builds. Direct3D 12 detection only runs on Windows.
+Open **Project Settings > Player > Graphic Driver Guard** to edit the render-API selection (Vulkan / Direct3D 11 / Direct3D 12), the minimum Vulkan version, the minimum D3D11 / D3D12 feature level, per-platform minimum and recommended driver versions, vendor URLs, and optional deny-list rules. Disable **Enable Build Integration** to leave standalone builds untouched; when disabled, the postprocessor also removes proxy/configuration artifacts left by an earlier enabled build. The postprocessor applies to `StandaloneWindows64` and `StandaloneLinux64` builds. Direct3D 11 / 12 detection only runs on Windows.
 
 The native proxy binaries are expected at:
 
@@ -104,7 +105,8 @@ The generated `DriverGuard.ini` is intentionally close to UE's INI style:
 ```ini
 [Global]
 MinimumVulkanVersion=1.1
-RenderAPI=Vulkan,D3D12
+RenderAPI=Vulkan,D3D11,D3D12
+MinimumD3D11FeatureLevel=11_0
 MinimumFeatureLevel=12_0
 
 [GPU_NVIDIA]
@@ -113,24 +115,13 @@ SuggestedDriverVersion=516.25
 DownloadURL=https://www.nvidia.com/Download/index.aspx
 ```
 
-`RenderAPI` accepts a comma-separated list of `Vulkan` and/or `D3D12` and decides which render APIs are checked before startup; it defaults to Vulkan only. `MinimumFeatureLevel` is the minimum Direct3D 12 feature level (`11_0`, `11_1`, `12_0`, `12_1`) and defaults to `11_0`.
+`RenderAPI` accepts a comma-separated list of `Vulkan`, `D3D11`, and/or `D3D12` and decides which render APIs are checked before startup; it defaults to Vulkan only. `MinimumD3D11FeatureLevel` is the minimum Direct3D 11 feature level (`9_1` through `11_1`) and defaults to `11_0`; `MinimumFeatureLevel` is the minimum Direct3D 12 feature level (`11_0`, `11_1`, `12_0`, `12_1`) and defaults to `11_0`.
 
-The minimum driver version applies to every device from that vendor regardless of render API and does not emit a `DeviceId`. Drivers below it show the warning dialog; users can still continue when the required Vulkan API / D3D12 feature level is available. Keep minimum and optional deny-list values aligned with your compatibility validation and current vendor advisories.
-
-### Generate Device IDs from pci.ids
-
-`pci.ids` can supply the hardware ID list automatically. The generator runs at build/release time and does not add a database or executable to the player:
-
-```powershell
-python scripts/generate-driverguard-ini.py --output DriverGuard.generated.ini
-python scripts/generate-driverguard-ini.py --output DriverGuard.generated.ini --nvidia-deny-below 551.76
-```
-
-The first command only emits the current NVIDIA/AMD/Intel IDs as comments. A `--*-deny-below` option is opt-in and creates a rule covering the IDs from `pci.ids`; the threshold must still be validated against the game's Unity/Vulkan test matrix. `pci.ids` is maintained by [pciutils](https://github.com/pciutils/pciids) and its license/notice must be retained when distributing generated data.
+The minimum driver version applies to every device from that vendor regardless of render API and does not emit a `DeviceId`. Drivers below it show the warning dialog; users can still continue when the required Vulkan API / D3D feature level is available. Keep minimum and optional deny-list values aligned with your compatibility validation and current vendor advisories.
 
 ## Platform Notes
 
-- The probe dynamically loads `vulkan-1.dll` plus `d3d12.dll` / `dxgi.dll` on Windows and `libvulkan.so.1` on Linux, so the Unity Editor and project do not need Vulkan SDK headers or libraries.
+- The probe dynamically loads `vulkan-1.dll` plus `d3d11.dll` / `d3d12.dll` / `dxgi.dll` on Windows and `libvulkan.so.1` on Linux, so the Unity Editor and project do not need Vulkan SDK headers or libraries.
 - Linux GUI buttons use `zenity`, then `kdialog`, and finally log the reason to stderr when no desktop dialog helper is available.
 - Windows uses Task Dialog and falls back to `MessageBox`; the proxy is statically linked to the MSVC runtime.
 - The proxy must be built for the same architecture as the Unity player (`x86_64` in the supplied targets).

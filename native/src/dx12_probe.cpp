@@ -173,6 +173,15 @@ D3D12ProbeResult ProbeD3D12() {
 
 std::uint32_t ParseFeatureLevel(const std::string& text) {
     const std::string value = Trim(text);
+    if (value == "9_1" || value == "9.1") return kFeatureLevel9_1;
+    if (value == "9_2" || value == "9.2") return kFeatureLevel9_2;
+    if (value == "9_3" || value == "9.3") return kFeatureLevel9_3;
+    if (value == "10_0" || value == "10.0" || value == "a000" || value == "A000") {
+        return kFeatureLevel10_0;
+    }
+    if (value == "10_1" || value == "10.1" || value == "a100" || value == "A100") {
+        return kFeatureLevel10_1;
+    }
     if (value == "11_0" || value == "11.0" || value == "b000" || value == "B000") {
         return kFeatureLevel11_0;
     }
@@ -197,6 +206,11 @@ std::uint32_t ParseFeatureLevel(const std::string& text) {
 
 std::string FormatFeatureLevel(const std::uint32_t featureLevel) {
     switch (featureLevel) {
+        case kFeatureLevel9_1: return "9_1";
+        case kFeatureLevel9_2: return "9_2";
+        case kFeatureLevel9_3: return "9_3";
+        case kFeatureLevel10_0: return "10_0";
+        case kFeatureLevel10_1: return "10_1";
         case kFeatureLevel11_0: return "11_0";
         case kFeatureLevel11_1: return "11_1";
         case kFeatureLevel12_0: return "12_0";

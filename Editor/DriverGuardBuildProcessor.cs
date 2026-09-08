@@ -118,11 +118,14 @@ namespace GraphicDriverGuard.Editor
             output.AppendLine($"MinimumVulkanVersion={settings.minimumVulkanMajor}.{settings.minimumVulkanMinor}");
             var renderApis = new List<string>();
             if (settings.checkVulkan) renderApis.Add("Vulkan");
-            // Direct3D 12 is Windows-only. A Linux player cannot use it, so never
-            // emit a D3D12 check (or a feature-level requirement) for Linux builds.
+            // Direct3D 11/12 are Windows-only. A Linux player cannot use them, so
+            // never emit a D3D check (or a feature-level requirement) for Linux builds.
+            if (windows && settings.checkD3D11) renderApis.Add("D3D11");
             if (windows && settings.checkD3D12) renderApis.Add("D3D12");
             if (renderApis.Count == 0) renderApis.Add("Vulkan");
             output.AppendLine($"RenderAPI={string.Join(",", renderApis)}");
+            if (windows && settings.checkD3D11)
+                output.AppendLine($"MinimumD3D11FeatureLevel={FeatureLevelName11(settings.minimumD3D11FeatureLevel)}");
             if (windows)
                 output.AppendLine($"MinimumFeatureLevel={FeatureLevelName(settings.minimumFeatureLevel)}");
             AppendPolicy(output, "GPU_NVIDIA", settings.nvidia, windows);
@@ -149,7 +152,7 @@ namespace GraphicDriverGuard.Editor
                          rule != null &&
                          rule.enabled &&
                          (rule.platform == DriverRulePlatform.All || rule.platform == platform) &&
-                         (windows || rule.rhi != DriverRuleRhi.D3D12) &&
+                         (windows || (rule.rhi != DriverRuleRhi.D3D11 && rule.rhi != DriverRuleRhi.D3D12)) &&
                          !string.IsNullOrWhiteSpace(rule.comparison)))
             {
                 output.Append("+DriverDenyList=(DriverVersion=\"");
@@ -157,6 +160,8 @@ namespace GraphicDriverGuard.Editor
                 output.Append('"');
                 if (rule.rhi == DriverRuleRhi.Vulkan)
                     output.Append(",RHIName=\"Vulkan\"");
+                else if (rule.rhi == DriverRuleRhi.D3D11)
+                    output.Append(",RHIName=\"D3D11\"");
                 else if (rule.rhi == DriverRuleRhi.D3D12)
                     output.Append(",RHIName=\"D3D12\"");
                 AppendField(output, "AdapterNameRegex", rule.adapterNameRegex);
@@ -178,6 +183,20 @@ namespace GraphicDriverGuard.Editor
             if (string.IsNullOrWhiteSpace(value))
                 return;
             output.Append(',').Append(name).Append("=\"").Append(Quoted(value)).Append('"');
+        }
+
+        private static string FeatureLevelName11(D3D11FeatureLevel level)
+        {
+            switch (level)
+            {
+                case D3D11FeatureLevel.Level9_1: return "9_1";
+                case D3D11FeatureLevel.Level9_2: return "9_2";
+                case D3D11FeatureLevel.Level9_3: return "9_3";
+                case D3D11FeatureLevel.Level10_0: return "10_0";
+                case D3D11FeatureLevel.Level10_1: return "10_1";
+                case D3D11FeatureLevel.Level11_1: return "11_1";
+                default: return "11_0";
+            }
         }
 
         private static string FeatureLevelName(D3D12FeatureLevel level)

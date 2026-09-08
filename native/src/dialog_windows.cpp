@@ -81,6 +81,12 @@ bool ShowFailureDialog(const PreflightResult& result) {
                     << result.requiredVulkanMajor << '.' << result.requiredVulkanMinor
                     << ' ' << text.orNewer;
         }
+        if (result.checkD3D11) {
+            details << "\n" << text.dx11FeatureLevel << ": "
+                    << FormatFeatureLevel(result.gpu.d3d11FeatureLevel);
+            details << "\n" << text.requiredD3D11FeatureLevel << ": "
+                    << FormatFeatureLevel(result.requiredD3D11FeatureLevel) << ' ' << text.orNewer;
+        }
         if (result.checkD3D12) {
             details << "\n" << text.dx12FeatureLevel << ": "
                     << FormatFeatureLevel(result.gpu.d3d12FeatureLevel);
@@ -92,12 +98,15 @@ bool ShowFailureDialog(const PreflightResult& result) {
         details << "\n" << text.recommendedDriver << ": " << result.suggestedVersion;
     }
 
+    const bool dx11Failure = result.failure == FailureKind::D3D11Unavailable ||
+                             result.failure == FailureKind::D3D11FeatureLevelUnsupported;
     const bool dx12Failure = result.failure == FailureKind::D3D12Unavailable ||
                              result.failure == FailureKind::D3D12FeatureLevelUnsupported;
     const std::wstring windowTitle = Wide(text.windowTitle);
     const std::wstring title = Wide(result.failure == FailureKind::DriverDenied
                                         ? text.driverTitle
-                                        : (dx12Failure ? text.dx12Title : text.vulkanTitle));
+                                        : (dx11Failure ? text.dx11Title
+                                            : (dx12Failure ? text.dx12Title : text.vulkanTitle)));
     const std::wstring content = Wide(details.str());
     const std::wstring updateDriver = Wide(text.updateDriver);
     const std::wstring continueRunning = Wide(text.continueRunning);

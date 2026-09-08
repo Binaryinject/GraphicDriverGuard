@@ -1,5 +1,6 @@
 #include "uvdg/config.h"
 
+#include "uvdg/dx11_probe.h"
 #include "uvdg/dx12_probe.h"
 
 #include <algorithm>
@@ -194,7 +195,7 @@ bool ParseRule(const std::string& value, const std::uint32_t vendorId, DriverRul
     if (rhiName != fields.end()) {
         result.rhiName = rhiName->second;
         const auto rhi = Lower(result.rhiName);
-        if (rhi != "vulkan" && rhi != "d3d12") return false;
+        if (rhi != "vulkan" && rhi != "d3d11" && rhi != "d3d12") return false;
     }
     const auto adapterName = fields.find("adapternameregex");
     if (adapterName != fields.end()) {
@@ -302,16 +303,24 @@ Config LoadConfig(const std::string& path) {
                 if (version.components.size() > 1) config.minimumVulkanMinor = version.components[1];
             } else if (key == "renderapi") {
                 config.checkVulkan = false;
+                config.checkD3D11 = false;
                 config.checkD3D12 = false;
                 for (const auto& item : SplitSelectors(value)) {
                     const auto api = Lower(item);
                     if (api == "vulkan") {
                         config.checkVulkan = true;
+                    } else if (api == "d3d11" || api == "direct3d11" || api == "dx11") {
+                        config.checkD3D11 = true;
                     } else if (api == "d3d12" || api == "direct3d12" || api == "dx12") {
                         config.checkD3D12 = true;
                     }
                 }
-                if (!config.checkVulkan && !config.checkD3D12) config.checkVulkan = true;
+                if (!config.checkVulkan && !config.checkD3D11 && !config.checkD3D12) {
+                    config.checkVulkan = true;
+                }
+            } else if (key == "minimumd3d11featurelevel") {
+                const auto level = ParseFeatureLevel(value);
+                if (level != 0) config.minimumD3D11FeatureLevel = level;
             } else if (key == "minimumfeaturelevel") {
                 const auto level = ParseFeatureLevel(value);
                 if (level != 0) config.minimumFeatureLevel = level;
@@ -352,10 +361,12 @@ bool Matches(const Version& installed, const DriverRule& rule) {
     return false;
 }
 
-bool RhiIsActive(const std::string& ruleRhi, const bool checkVulkan, const bool checkD3D12) {
+bool RhiIsActive(const std::string& ruleRhi, const bool checkVulkan, const bool checkD3D11,
+                 const bool checkD3D12) {
     if (ruleRhi.empty()) return true;
     const auto rhi = Lower(ruleRhi);
     if (rhi == "vulkan") return checkVulkan;
+    if (rhi == "d3d11") return checkD3D11;
     if (rhi == "d3d12") return checkD3D12;
     return false;
 }

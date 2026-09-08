@@ -12,6 +12,17 @@ namespace GraphicDriverGuard.Editor
         Linux
     }
 
+    internal enum D3D11FeatureLevel
+    {
+        [InspectorName("9_1")] Level9_1 = 0x9100,
+        [InspectorName("9_2")] Level9_2 = 0x9200,
+        [InspectorName("9_3")] Level9_3 = 0x9300,
+        [InspectorName("10_0")] Level10_0 = 0xA000,
+        [InspectorName("10_1")] Level10_1 = 0xA100,
+        [InspectorName("11_0")] Level11_0 = 0xB000,
+        [InspectorName("11_1")] Level11_1 = 0xB100
+    }
+
     internal enum D3D12FeatureLevel
     {
         [InspectorName("11_0")] Level11_0 = 0xB000,
@@ -23,6 +34,7 @@ namespace GraphicDriverGuard.Editor
     internal enum DriverRuleRhi
     {
         Vulkan,
+        D3D11,
         D3D12,
         All
     }
@@ -68,6 +80,10 @@ namespace GraphicDriverGuard.Editor
         public int minimumVulkanMinor = 1;
         [Tooltip("Check Vulkan support before startup.")]
         public bool checkVulkan = true;
+        [Tooltip("Check Direct3D 11 support before startup (Windows only).")]
+        public bool checkD3D11 = false;
+        [Tooltip("Minimum D3D11 feature level required when checkD3D11 is enabled.")]
+        public D3D11FeatureLevel minimumD3D11FeatureLevel = D3D11FeatureLevel.Level11_0;
         [Tooltip("Check Direct3D 12 support before startup (Windows only).")]
         public bool checkD3D12 = false;
         [Tooltip("Minimum D3D12 feature level required when checkD3D12 is enabled.")]
@@ -131,7 +147,7 @@ namespace GraphicDriverGuard.Editor
         private DriverGuardSettingsProvider()
             : base("Project/Player/Graphic Driver Guard", SettingsScope.Project)
         {
-            keywords = new HashSet<string>(new[] { "Vulkan", "DX12", "D3D12", "DirectX", "Feature Level", "GPU", "Driver", "Deny List" });
+            keywords = new HashSet<string>(new[] { "Vulkan", "DX11", "DX12", "D3D11", "D3D12", "DirectX", "Feature Level", "GPU", "Driver", "Deny List" });
         }
 
         [SettingsProvider]
